@@ -7,8 +7,30 @@
 
 
 Function for Games --> Dataframe
-Function for Betting Lines --> Dataframe
+
+Function for Betting Lines --> Dataframe:
+-- Negative betting line: away team favored
+-- Want columns for Game ID, spread, over-under both averaged across all lines
+
 Function for Stats --> Dataframe
+
+
+
+Season stats we may want:  (May have to average)
+
+Offensive:
+Points scored per game
+PPA
+Havoc (against)
+Yards per game
+
+
+
+Defensive:
+Points allowed per game
+Havoc
+Yards allowed per game
+PPA
 
 [
   {
