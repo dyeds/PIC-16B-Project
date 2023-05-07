@@ -19,3 +19,11 @@ def df_from_games(gamelist):
     
     df = pd.DataFrame(gamelist)
     return df
+
+def get_fbs_betting(api_instance, year, conferences):
+    betting_info=api_instance.get_lines(year=year)
+    
+    betting_info=[game for game in betting_info if (game.away_conference in conferences
+                                                    and game.home_conference in conferences)] 
+    return betting_info
+
