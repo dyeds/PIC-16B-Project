@@ -10,16 +10,15 @@ def get_fbs_games(api_instance,year):
     return gamelist
 
 def df_from_games(gamelist):
-    gamelist = [str(game).split("\n") for game in gamelist]
-    gamelist = [[s[2:-1] for s in game] for game in gamelist]
-    gamelist = [[s.replace("'","").split(": ") for s in game] for game in gamelist]
-    gamelist = [{s[0]:s[1] for s in game} for game in gamelist]
+    gamelist = [game.to_dict() for game in gamelist]
     gamemetrics = ['away_conference','away_id','away_points','away_team',
                    'home_conference','home_id','home_points','home_team',
                    'id', 'season','neutral_site']
     gamelist = [{x:game[x] for x in game if x in gamemetrics} for game in gamelist]
     
     df = pd.DataFrame(gamelist)
+    df['game_spread'] = df['home_points'] - df['away_points']
+    df['game_totalpts'] = df['home_points'] + df['away_points']
     return df
 
 def get_fbs_betting(api_instance, year, conferences):
@@ -51,6 +50,28 @@ def df_betting_lines(betting_info):
         game['av_total']=np.mean(over_unders)
         
     df = pd.DataFrame(betting_lines)[['id','av_spread','av_total']]
+    return df
+
+# not using this bc its 1 line of code
+# def get_team_advstats(api_instance,year):
+#     teamstats = api_instance.get_advanced_team_season_stats(year=year)
+#     return teamstats
+
+def word_adder(word,dict):
+    new_dict={}
+    for key,value in dict.items():
+        new_key = f'{word} {key}'
+        new_dict[new_key] = value
+    return new_dict
+
+def df_team_advstats(teamstats):
+    teamstats = [{**{'team':t.team,'season':t.season,'conference':t.conference},
+                **word_adder(word="Offensive",dict=t.offense.to_dict()),
+                **word_adder(word="Defensive",dict=t.defense.to_dict())} for t in teamstats]
+    
+    #note some keys are still dictionaries, so we need to apply word_adder again
+    #to then merge dictionaries.
+    
     return df
 
     
