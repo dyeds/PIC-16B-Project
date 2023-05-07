@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+
 
 def get_fbs_games(api_instance,year):
     gamelist = api_instance.get_games(year=year,division='fbs')
@@ -26,4 +28,32 @@ def get_fbs_betting(api_instance, year, conferences):
     betting_info=[game for game in betting_info if (game.away_conference in conferences
                                                     and game.home_conference in conferences)] 
     return betting_info
+
+def df_betting_lines(betting_info):
+    betting_lines=[game.to_dict() for game in betting_info]
+    
+    for game in betting_lines:
+        away_length=len(game['away_team'])
+        home_length=len(game['home_team'])
+        game_lines=[]
+        over_unders=[]
+    
+        for i in range(len(game['lines'])):
+            if game['lines'][i]['formatted_spread'][:away_length+2]==(game['away_team']+' -'):
+                game_lines.append(float(game['lines'][i]['formatted_spread'][away_length+1:]))
+            
+            elif game['lines'][i]['formatted_spread'][:home_length+2]==(game['home_team']+' -'):
+                game_lines.append(abs(float(game['lines'][i]['formatted_spread'][home_length+1:])))
+        
+            over_unders.append(game['lines'][i]['over_under'])
+            
+        game['av_spread']=np.mean(game_lines)
+        game['av_total']=np.mean(over_unders)
+        
+    df = pd.DataFrame(betting_lines)[['id','av_spread','av_total']]
+    return df
+
+    
+    
+
 
