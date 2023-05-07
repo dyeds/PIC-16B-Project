@@ -64,17 +64,27 @@ def word_adder(word,dict):
         new_dict[new_key] = value
     return new_dict
 
+def word_adder2(dict):
+    updaterkeys = []
+    for key,value in dict.items():
+        if type(value)==type(dict):
+            updaterkeys.append([key,value])
+    
+    for i in range(len(updaterkeys)):
+        dict.update(word_adder(word=updaterkeys[i][0],dict=updaterkeys[i][1]))
+        dict.pop(updaterkeys[i][0])
+    return dict
+
 def df_team_advstats(teamstats):
     teamstats = [{**{'team':t.team,'season':t.season,'conference':t.conference},
                 **word_adder(word="Offensive",dict=t.offense.to_dict()),
                 **word_adder(word="Defensive",dict=t.defense.to_dict())} for t in teamstats]
     
-    #note some keys are still dictionaries, so we need to apply word_adder again
-    #to then merge dictionaries.
-    
+    teamstats = [word_adder2(t) for t in teamstats]
+    df = pd.DataFrame(teamstats)
+    df = df.drop('Defensive passing_plays total_ppa',axis=1)
+    #missing: which columns to work with
     return df
-
-    
     
 
 
