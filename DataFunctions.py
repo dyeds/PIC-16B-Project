@@ -85,6 +85,10 @@ def df_team_advstats(teamstats):
     df = df.drop('Defensive passing_plays total_ppa',axis=1)
     #missing: which columns to work with
     return df
+
+def df_stats_needed(df,col):
+    df = df[col]
+    return df
     
 
 
