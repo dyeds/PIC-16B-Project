@@ -38,16 +38,21 @@ def df_betting_lines(betting_info):
         over_unders=[]
     
         for i in range(len(game['lines'])):
-            if game['lines'][i]['formatted_spread'][:away_length+2]==(game['away_team']+' -'):
+            if (game['lines'][i]['formatted_spread'][:away_length+2]==(game['away_team']+' -') 
+                and game['lines'][i]['formatted_spread'][away_length+2:]!='null'):
                 game_lines.append(float(game['lines'][i]['formatted_spread'][away_length+1:]))
             
-            elif game['lines'][i]['formatted_spread'][:home_length+2]==(game['home_team']+' -'):
+            elif (game['lines'][i]['formatted_spread'][:home_length+2]==(game['home_team']+' -')
+                  and game['lines'][i]['formatted_spread'][home_length+2:]!='null'):
                 game_lines.append(abs(float(game['lines'][i]['formatted_spread'][home_length+1:])))
         
-            over_unders.append(game['lines'][i]['over_under'])
+            if (game['lines'][i]['over_under']!=None):
+                over_unders.append(game['lines'][i]['over_under'])
             
-        game['av_spread']=np.mean(game_lines)
-        game['av_total']=np.mean(over_unders)
+        if len(game_lines)!=0:   
+            game['av_spread']=np.mean(game_lines)
+        if len(over_unders)!=0:
+            game['av_total']=np.mean(over_unders)
         
     df = pd.DataFrame(betting_lines)[['id','av_spread','av_total']]
     return df
