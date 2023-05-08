@@ -63,9 +63,10 @@ def df_betting_lines(betting_info):
 #     return teamstats
 
 def word_adder(word,dict):
+    word=word+"_"
     new_dict={}
     for key,value in dict.items():
-        new_key = f'{word} {key}'
+        new_key = f"{word}{key}"
         new_dict[new_key] = value
     return new_dict
 
@@ -87,7 +88,7 @@ def df_team_advstats(teamstats):
     
     teamstats = [word_adder2(t) for t in teamstats]
     df = pd.DataFrame(teamstats)
-    df = df.drop('Defensive passing_plays total_ppa',axis=1)
+    df = df.drop('Defensive_passing_plays_total_ppa',axis=1)
     #missing: which columns to work with
     return df
 
