@@ -18,6 +18,11 @@ Function for Stats --> Dataframe
 
 Season stats we may want:  (May have to average)
 
+
+-- ['Offensive ppa','Offensive success_rate','Offensive explosiveness','Offensive power_success','Offensive stuff_rate','Offensive line_yards','Defensive ppa','Defensive success_rate','Defensive explosiveness','Defensive power_success','Defensive stuff_rate',
+'Defensive line_yards','Offensive havoc total','Offensive rushing_plays ppa','Offensive rushing_plays success_rate','Offensive rushing_plays explosiveness','Offensive passing_plays ppa', 'Offensive passing_plays success_rate','Offensive passing_plays explosiveness','Defensive havoc total','Defensive rushing_plays ppa','Defensive rushing_plays success_rate','Defensive rushing_plays explosiveness','Defensive passing_plays ppa','Defensive passing_plays success_rate','Defensive passing_plays explosiveness']
+
+
 Note: we need to add some sort of strength of schedule component
 we can do it using Team Record and adding up the team record of the opponents
 
