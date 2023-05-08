@@ -18,6 +18,9 @@ Function for Stats --> Dataframe
 
 Season stats we may want:  (May have to average)
 
+Note: we need to add some sort of strength of schedule component
+we can do it using Team Record and adding up the team record of the opponents
+
 Offensive:
 Points scored per game
 PPA
