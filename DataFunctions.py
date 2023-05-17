@@ -95,6 +95,16 @@ def df_team_advstats(teamstats):
 def df_stats_needed(df,col):
     df = df[col]
     return df
+
+def get_team_locations(api_instance,conferences):
+    team_info=api_instance.get_teams()
+    team_info[0]
+    team_info=[[team.school,team.id,team.location.latitude,
+                team.location.latitude] for team in team_info if (team.conference in conferences)]
+    locations=pd.DataFrame(team_info)
+    locations=locations.rename(columns={0:'team',1:'id',2:'latitude',3:'longitude'})
+    
+    return locations
     
 
 
