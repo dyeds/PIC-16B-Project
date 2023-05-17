@@ -100,7 +100,7 @@ def get_team_locations(api_instance,conferences):
     team_info=api_instance.get_teams()
     team_info[0]
     team_info=[[team.school,team.id,team.location.latitude,
-                team.location.latitude] for team in team_info if (team.conference in conferences)]
+                team.location.longitude] for team in team_info if (team.conference in conferences)]
     locations=pd.DataFrame(team_info)
     locations=locations.rename(columns={0:'team',1:'id',2:'latitude',3:'longitude'})
     
