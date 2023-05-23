@@ -105,6 +105,31 @@ def get_team_locations(api_instance,conferences):
     locations=locations.rename(columns={0:'team',1:'id',2:'latitude',3:'longitude'})
     
     return locations
+
+
+def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
+    
+    adjusted_spread=np.random.normal(pred_spread,std_spread)
+    adjusted_total=np.random.normal(pred_total,std_total)
+    adjusted_home_points=(adjusted_spread+adjusted_total)/2
+    adjusted_away_points=adjusted_total-adjusted_home_points
+    adjusted_home_points=int(np.rint(adjusted_home_points))
+    adjusted_away_points=int(np.rint(adjusted_away_points))
+    
+    if (adjusted_home_points==adjusted_away_points) or (
+        adjusted_home_points<0) or (
+        adjusted_home_points==1) or (
+        adjusted_away_points<0) or (
+        adjusted_away_points==1):
+                
+                return (prediction_to_score(pred_spread, pred_total, std_spread, std_total))
+    
+    else:
+        return f'Away Points: {adjusted_away_points}, Home_Points: {adjusted_home_points}'
+                    
+        
+    
+    
     
 
 
