@@ -15,15 +15,17 @@ def Simulate(g,i,c):
     
     #for ordering outside to inside
     vals = np.arange(i+1)
-    vals2 = np.arange(i+1)
-    vals2 = np.flip(vals2)
+    vals2 = np.flip(vals)
     vals3 = []
-    i = 0
-    while len(vals3)<8:
-        vals3.append(vals[i])
-        vals3.append(vals2[i])
-        i += 1
     
+    #ERROR HERE
+    for h in range(i+1):
+        if len(vals3)>=i:break
+        vals3.append(vals2[h])
+        if len(vals3)>=i:break
+        vals3.append(vals[h])
+    
+    vals3 = np.array(vals3)
     matchings = []
     
     for j in vals3:
@@ -41,6 +43,7 @@ def Simulate(g,i,c):
                     groups[j+1].append(k)
         
         matchings += matching_group
+        del matching_group
             
     for team in matchings:
         #home and away status
@@ -48,7 +51,7 @@ def Simulate(g,i,c):
         #homeval=1 means that second teams is home
         
         if c[team[0],2] == c[team[1],2]:
-            homeval = np.random.randomint(2)
+            homeval = np.random.randint(2)
             c[team[homeval],2]+=1
         elif c[team[0],2] > c[team[1],2]:
             homeval = 1
