@@ -9,6 +9,7 @@ import numpy as np
 # 4. Store results in db
 
 def Simulate(g,i,c):
+    print("Round:",(i+1))
     groups = []
     for j in range(i+1):
         groups.append([x[0].astype(int) for x in c if x[1]==j])
@@ -20,9 +21,9 @@ def Simulate(g,i,c):
     
     #ERROR HERE
     for h in range(i+1):
-        if len(vals3)>=i:break
+        if len(vals3)>=(i+1):break
         vals3.append(vals2[h])
-        if len(vals3)>=i:break
+        if len(vals3)>=(i+1):break
         vals3.append(vals[h])
     
     vals3 = np.array(vals3)
@@ -61,12 +62,14 @@ def Simulate(g,i,c):
             c[team[0],2]+=1
         
         #simulating match
+        #replace function used before here.
         if(np.random.randint(2)):
             c[team[0],1]+= 1
             print(team[0],"won",team[1],"lose")
         else: 
             c[team[1],1]+= 1
             print(team[0],"lose",team[1],"won")
+        
         
         g.remove_edge(u=team[0],v=team[1])
     
