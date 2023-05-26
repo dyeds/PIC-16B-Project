@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import networkx as nx
+import tensorflow as tf
+import cfbd
+import sqlite3
 
 
 def get_fbs_games(api_instance,year):
@@ -132,9 +135,26 @@ def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
 
 
 #added here to avoid issues with calling functions.
-def Simulate(g,i,c):
+def Simulate(g,i,c,y,st_dev):
+    
+    #loading machine learning model:
+    prediction_model  = tf.keras.models.load_model("CFBprediction.h5")
+    
+    #associating teams by number
+    config = cfbd.Configuration()
+    config.api_key['Authorization'] = '3WCU5V2X05Rvh60ZxUG8FarJN4s2D1lcd2c2r6Kz/qL1Y3tVBJtWsuNATnzHRV2h'
+    config.api_key_prefix['Authorization'] = 'Bearer'
+    api_instance_simul= cfbd.TeamsApi(cfbd.ApiClient(config))
+    conf = {'ACC','American Athletic','Big 12','Big Ten','Conference USA',
+    'FBS Independents','Mid-American','Mountain West','Pac-12','SEC','Sun Belt'}
+    team_id = get_team_locations(api_instance=api_instance_simul,conferences=conf)
+    team_id = team_id[team_id.team != "Hawai'i"
+                      or team_id.team != "Jacksonville State"
+                      or team_id.team != "Sam Houston State"]
+    team_array = np.array(team_id["team"])
+    
     print("Round:",(i+1))
-    groups = []
+    groups = [] 
     for j in range(i+1):
         groups.append([x[0].astype(int) for x in c if x[1]==j])
     
@@ -143,7 +163,6 @@ def Simulate(g,i,c):
     vals2 = np.flip(vals)
     vals3 = []
     
-    #ERROR HERE
     for h in range(i+1):
         if len(vals3)>=(i+1):break
         vals3.append(vals2[h])
@@ -169,7 +188,9 @@ def Simulate(g,i,c):
         
         matchings += matching_group
         del matching_group
-            
+    
+    conn = sqlite3.connect("CollegeFootball.db")
+    
     for team in matchings:
         #home and away status
         #homeval=0 means that first team is home
@@ -185,19 +206,62 @@ def Simulate(g,i,c):
             homeval = 0
             c[team[0],2]+=1
         
-        #simulating match
-        #replace function used before here.
-        if(np.random.randint(2)):
-            c[team[0],1]+= 1
-            print(team[0],"won",team[1],"lose")
-        else: 
-            c[team[1],1]+= 1
-            print(team[0],"lose",team[1],"won")
+        team0 = team_array[team[0]]
+        team1 = team_array[team[1]]
         
+        team0df = get_team_stats_from_sql(conn=conn,name=team0,year=y)
+        team1df = get_team_stats_from_sql(conn=conn,name=team1,year=y)
+        
+        if homeval: gamedf = pd.concat([team1df,team0df])
+        else: gamedf = pd.concat([team0df,team1df])
+        
+        gamedf=gamedf.reset_index(drop=True)
+        gamedf=gamedf.loc[:, 'Offensive_ppa':]
+        game_array = np.array(0)
+        game_array = np.append(game_array,np.array(gamedf,dtype=np.float32))
+        game_array = game_array.flatten()
+        game_array = game_array.reshape(1,53)
+        
+        gamepred = prediction_model.predict(game_array)
+        s = prediction_to_score(gamepred[0][0],gamepred[0][1],st_dev[0],st_dev[1])
+        s = s.split(",")
+        homepts = int(s[0].split(": ")[1])
+        awaypts = int(s[1].split(": ")[1])
+        
+        if(homepts>awaypts):
+            c[team[homeval]]+=1
+        else:
+            c[team[(1-homeval)]]+=1
+        
+        if homeval:
+            register_simul_game(conn=conn,hometeam=team1,awayteam=team0,
+                                homepts=homepts,awaypts=awaypts,round=(i+1),team_id = team_id)
+        else:
+            register_simul_game(conn=conn,hometeam=team0,awayteam=team1,
+                                homepts=homepts,awaypts=awaypts,round=(i+1),team_id = team_id)
         
         g.remove_edge(u=team[0],v=team[1])
+    
+    conn.close()
     
     return   
      
 
 
+def get_team_stats_from_sql(conn,name,year):
+    cmd=\
+    f"""
+    SELECT *
+    FROM stats S
+    WHERE S.team='{name}' AND S.season={year}
+    """
+    df = pd.read_sql_query(cmd,conn)
+    return df
+
+def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
+    df = pd.DataFrame({"Week":round,"Home Team":hometeam,"Home Points":homepts,
+                       "Away Team": awayteam, "Away Points":awaypts,
+                       "latitude":team_id[team_id["team"]==hometeam]["latitude"],
+                       "longitude":team_id[team_id["team"]==hometeam]["longitude"]})
+    df.to_sql("simul_games",conn=conn,if_exists="append",index=False)
+    return
