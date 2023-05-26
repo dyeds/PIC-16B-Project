@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import networkx as nx
 
 
 def get_fbs_games(api_instance,year):
@@ -126,10 +127,77 @@ def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
     
     else:
         return f'Away Points: {adjusted_away_points}, Home_Points: {adjusted_home_points}'
-                    
+
+
+
+
+#added here to avoid issues with calling functions.
+def Simulate(g,i,c):
+    print("Round:",(i+1))
+    groups = []
+    for j in range(i+1):
+        groups.append([x[0].astype(int) for x in c if x[1]==j])
+    
+    #for ordering outside to inside
+    vals = np.arange(i+1)
+    vals2 = np.flip(vals)
+    vals3 = []
+    
+    #ERROR HERE
+    for h in range(i+1):
+        if len(vals3)>=(i+1):break
+        vals3.append(vals2[h])
+        if len(vals3)>=(i+1):break
+        vals3.append(vals[h])
+    
+    vals3 = np.array(vals3)
+    matchings = []
+    
+    for j in vals3:
+        if set(groups[j])==set():
+            continue
+        g_group = g.subgraph(groups[j])
+        matching_group = nx.algorithms.matching.min_weight_matching(g_group)
+        s = set(groups[j]) - set(np.array(list(matching_group)).flatten())
+        if s!=set():
+            for k in s:
+                groups[j].remove(k)
+                if j > vals3[-1]:
+                    groups[j-1].append(k)
+                elif j < vals3[-1]:
+                    groups[j+1].append(k)
         
+        matchings += matching_group
+        del matching_group
+            
+    for team in matchings:
+        #home and away status
+        #homeval=0 means that first team is home
+        #homeval=1 means that second teams is home
+        
+        if c[team[0],2] == c[team[1],2]:
+            homeval = np.random.randint(2)
+            c[team[homeval],2]+=1
+        elif c[team[0],2] > c[team[1],2]:
+            homeval = 1
+            c[team[1],2]+=1
+        else:
+            homeval = 0
+            c[team[0],2]+=1
+        
+        #simulating match
+        #replace function used before here.
+        if(np.random.randint(2)):
+            c[team[0],1]+= 1
+            print(team[0],"won",team[1],"lose")
+        else: 
+            c[team[1],1]+= 1
+            print(team[0],"lose",team[1],"won")
+        
+        
+        g.remove_edge(u=team[0],v=team[1])
     
-    
-    
+    return   
+     
 
 
