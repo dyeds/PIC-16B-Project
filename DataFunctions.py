@@ -136,7 +136,6 @@ def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
 
 #added here to avoid issues with calling functions.
 def Simulate(g,i,c,y,st_dev):
-    
     #loading machine learning model:
     prediction_model  = tf.keras.models.load_model("CFBprediction.h5")
     
@@ -148,9 +147,9 @@ def Simulate(g,i,c,y,st_dev):
     conf = {'ACC','American Athletic','Big 12','Big Ten','Conference USA',
     'FBS Independents','Mid-American','Mountain West','Pac-12','SEC','Sun Belt'}
     team_id = get_team_locations(api_instance=api_instance_simul,conferences=conf)
-    team_id = team_id[team_id.team != "Hawai'i"
-                      or team_id.team != "Jacksonville State"
-                      or team_id.team != "Sam Houston State"]
+    team_id = team_id[team_id.team != "Hawai'i"]
+    team_id = team_id[team_id.team != "Jacksonville State"]
+    team_id = team_id[team_id.team != "Sam Houston State"]
     team_array = np.array(team_id["team"])
     
     print("Round:",(i+1))
@@ -158,38 +157,41 @@ def Simulate(g,i,c,y,st_dev):
     for j in range(i+1):
         groups.append([x[0].astype(int) for x in c if x[1]==j])
     
-    #for ordering outside to inside
-    vals = np.arange(i+1)
-    vals2 = np.flip(vals)
-    vals3 = []
-    
-    for h in range(i+1):
-        if len(vals3)>=(i+1):break
-        vals3.append(vals2[h])
-        if len(vals3)>=(i+1):break
-        vals3.append(vals[h])
-    
-    vals3 = np.array(vals3)
     matchings = []
-    
-    for j in vals3:
-        if set(groups[j])==set():
-            continue
-        g_group = g.subgraph(groups[j])
+    split_count = i+1
+    sorted_count = 0
+    gnum = 0
+    while sorted_count < split_count:
+        g_group = g.subgraph(groups[gnum])
         matching_group = nx.algorithms.matching.min_weight_matching(g_group)
-        s = set(groups[j]) - set(np.array(list(matching_group)).flatten())
-        if s!=set():
+        s = set(groups[gnum]) - set(np.array(list(matching_group)).flatten())
+        if len(s) > 0:
             for k in s:
-                groups[j].remove(k)
-                if j > vals3[-1]:
-                    groups[j-1].append(k)
-                elif j < vals3[-1]:
-                    groups[j+1].append(k)
+                groups[gnum].remove(k)
+                groups[gnum+1].append(k)
         
         matchings += matching_group
         del matching_group
+        sorted_count+=1
+        
+        if(sorted_count>=split_count):break
+        
+        g_group = g.subgraph(groups[-1*(gnum)-1])
+        matching_group = nx.algorithms.matching.min_weight_matching(g_group)
+        s = set(groups[-1*(gnum)-1]) - set(np.array(list(matching_group)).flatten())
+        if len(s) > 0:
+            for k in s:
+                groups[-1*(gnum)-1].remove(k)
+                groups[-1*(gnum)-2].append(k)
+        
+        matchings += matching_group
+        del matching_group
+        sorted_count+=1
+        gnum+=1
     
     conn = sqlite3.connect("CollegeFootball.db")
+    print(matchings)
+    print(len(matchings))
     
     for team in matchings:
         #home and away status
@@ -222,7 +224,7 @@ def Simulate(g,i,c,y,st_dev):
         game_array = game_array.flatten()
         game_array = game_array.reshape(1,53)
         
-        gamepred = prediction_model.predict(game_array)
+        gamepred = prediction_model.predict(game_array,verbose=0)
         s = prediction_to_score(gamepred[0][0],gamepred[0][1],st_dev[0],st_dev[1])
         s = s.split(",")
         homepts = int(s[0].split(": ")[1])
@@ -240,12 +242,10 @@ def Simulate(g,i,c,y,st_dev):
             register_simul_game(conn=conn,hometeam=team0,awayteam=team1,
                                 homepts=homepts,awaypts=awaypts,round=(i+1),team_id = team_id)
         
-        g.remove_edge(u=team[0],v=team[1])
+        g.remove_edge(u=int(team[0]),v=int(team[1]))
     
     conn.close()
-    
-    return   
-     
+    return
 
 
 def get_team_stats_from_sql(conn,name,year):
@@ -263,5 +263,5 @@ def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
                        "Away Team": awayteam, "Away Points":awaypts,
                        "latitude":team_id[team_id["team"]==hometeam]["latitude"],
                        "longitude":team_id[team_id["team"]==hometeam]["longitude"]})
-    df.to_sql("simul_games",conn=conn,if_exists="append",index=False)
+    df.to_sql("simul_games",conn,if_exists="append",index=False)
     return
