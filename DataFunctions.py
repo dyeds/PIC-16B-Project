@@ -150,6 +150,10 @@ def Simulate(g,i,c,y,st_dev):
     team_id = team_id[team_id.team != "Hawai'i"]
     team_id = team_id[team_id.team != "Jacksonville State"]
     team_id = team_id[team_id.team != "Sam Houston State"]
+    team_id = team_id[team_id.team != "James Madison"]
+    team_id = team_id[team_id.team != "Liberty"]
+    team_id = team_id[team_id.team != "Coastal Carolina"]
+    team_id = team_id[team_id.team != "Charlotte"]
     team_array = np.array(team_id["team"])
     
     print("Round:",(i+1))
@@ -158,37 +162,14 @@ def Simulate(g,i,c,y,st_dev):
         groups.append([x[0].astype(int) for x in c if x[1]==j])
     
     matchings = []
-    split_count = i+1
-    sorted_count = 0
     gnum = 0
-    while sorted_count < split_count:
+    for gnum in range(i+1):
         g_group = g.subgraph(groups[gnum])
         matching_group = nx.algorithms.matching.min_weight_matching(g_group)
         s = set(groups[gnum]) - set(np.array(list(matching_group)).flatten())
-        if len(s) > 0:
-            for k in s:
-                groups[gnum].remove(k)
-                groups[gnum+1].append(k)
-        
+        # solve issue with odd groups, solution with sets does not work.
         matchings += matching_group
-        del matching_group
-        sorted_count+=1
         
-        if(sorted_count>=split_count):break
-        
-        g_group = g.subgraph(groups[-1*(gnum)-1])
-        matching_group = nx.algorithms.matching.min_weight_matching(g_group)
-        s = set(groups[-1*(gnum)-1]) - set(np.array(list(matching_group)).flatten())
-        if len(s) > 0:
-            for k in s:
-                groups[-1*(gnum)-1].remove(k)
-                groups[-1*(gnum)-2].append(k)
-        
-        matchings += matching_group
-        del matching_group
-        sorted_count+=1
-        gnum+=1
-    
     conn = sqlite3.connect("CollegeFootball.db")
     print(matchings)
     print(len(matchings))
@@ -217,6 +198,7 @@ def Simulate(g,i,c,y,st_dev):
         if homeval: gamedf = pd.concat([team1df,team0df])
         else: gamedf = pd.concat([team0df,team1df])
         
+        
         gamedf=gamedf.reset_index(drop=True)
         gamedf=gamedf.loc[:, 'Offensive_ppa':]
         game_array = np.array(0)
@@ -231,9 +213,9 @@ def Simulate(g,i,c,y,st_dev):
         awaypts = int(s[1].split(": ")[1])
         
         if(homepts>awaypts):
-            c[team[homeval]]+=1
+            c[team[(1-homeval)],1]+=1
         else:
-            c[team[(1-homeval)]]+=1
+            c[team[homeval],1]+=1
         
         if homeval:
             register_simul_game(conn=conn,hometeam=team1,awayteam=team0,
@@ -242,7 +224,7 @@ def Simulate(g,i,c,y,st_dev):
             register_simul_game(conn=conn,hometeam=team0,awayteam=team1,
                                 homepts=homepts,awaypts=awaypts,round=(i+1),team_id = team_id)
         
-        g.remove_edge(u=int(team[0]),v=int(team[1]))
+        g.remove_edges_from([(int(team[0]),int(team[1]))])
     
     conn.close()
     return
