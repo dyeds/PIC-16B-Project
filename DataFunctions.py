@@ -136,6 +136,15 @@ def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
 
 #added here to avoid issues with calling functions.
 def Simulate(g,i,c,y,st_dev):
+    """_summary_
+
+    Args:
+        g (_type_): graph
+        i (_type_): round
+        c (_type_): current data
+        y (_type_): year
+        st_dev (_type_): standard[2]
+    """
     #loading machine learning model:
     prediction_model  = tf.keras.models.load_model("CFBprediction.h5")
     
@@ -209,13 +218,13 @@ def Simulate(g,i,c,y,st_dev):
         gamepred = prediction_model.predict(game_array,verbose=0)
         s = prediction_to_score(gamepred[0][0],gamepred[0][1],st_dev[0],st_dev[1])
         s = s.split(",")
-        homepts = int(s[0].split(": ")[1])
-        awaypts = int(s[1].split(": ")[1])
+        homepts = int(s[1].split(": ")[1])
+        awaypts = int(s[0].split(": ")[1])
         
         if(homepts>awaypts):
-            c[team[(1-homeval)],1]+=1
-        else:
             c[team[homeval],1]+=1
+        else:
+            c[team[(1-homeval)],1]+=1
         
         if homeval:
             register_simul_game(conn=conn,hometeam=team1,awayteam=team0,
