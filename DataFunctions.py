@@ -172,12 +172,39 @@ def Simulate(g,i,c,y,st_dev):
     
     matchings = []
     gnum = 0
-    for gnum in range(i+1):
+    gcount = 0
+    while gcount < (i+1):
         g_group = g.subgraph(groups[gnum])
         matching_group = nx.algorithms.matching.min_weight_matching(g_group)
         s = set(groups[gnum]) - set(np.array(list(matching_group)).flatten())
-        # solve issue with odd groups, solution with sets does not work.
+        if len(s) > 0:
+            for k in s:
+                groups[gnum].remove(k)
+                groups[(gnum+1)].append(k)
         matchings += matching_group
+        gcount += 1
+        
+        if gcount >= (i+1):break
+        
+        gnum2 = i - gnum
+        g_group = g.subgraph(groups[gnum2])
+        matching_group = nx.algorithms.matching.min_weight_matching(g_group)
+        s = set(groups[gnum2]) - set(np.array(list(matching_group)).flatten())
+        if len(s) > 0:
+            for k in s:
+                groups[gnum2].remove(k)
+                groups[(gnum2-1)].append(k)
+        matchings += matching_group
+        gcount += 1
+        gnum += 1
+    
+    # gnum = 0
+    # for gnum in range(i+1):
+    #     g_group = g.subgraph(groups[gnum])
+    #     matching_group = nx.algorithms.matching.min_weight_matching(g_group)
+    #     s = set(groups[gnum]) - set(np.array(list(matching_group)).flatten())
+    #     # solve issue with odd groups, solution with sets does not work.
+    #     matchings += matching_group
         
     conn = sqlite3.connect("CollegeFootball.db")
     print(matchings)
