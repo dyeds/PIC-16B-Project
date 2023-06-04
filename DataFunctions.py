@@ -285,3 +285,181 @@ def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
                        "longitude":team_id[team_id["team"]==hometeam]["longitude"]})
     df.to_sql("simul_games",conn,if_exists="append",index=False)
     return
+
+
+def plot_teams_games(team):
+    cmd=\
+        f"""
+        SELECT S.'Week',S.'Home Team', S.'Home Points', C.latitude, C.longitude
+        FROM simul_games S
+        INNER JOIN coordinates C ON S.'Home Team'=C.team
+        WHERE S.'Home Team'='{team}' OR S.'Away Team'='{team}'
+        """
+
+    conn=sqlite3.connect("CollegeFootball.db")
+    home_info=pd.read_sql_query(cmd,conn)
+    conn.close()
+    
+    home_info=home_info.rename(columns={'latitude':'home_latitude','longitude':'home_longitude'})
+    
+    cmd=\
+        f"""
+        SELECT S.'Away Team', S.'Away Points', C.latitude, C.longitude
+        FROM simul_games S
+        INNER JOIN coordinates C ON S.'Away Team'=C.team
+        WHERE S.'Home Team'='{team}' OR S.'Away Team'='{team}'
+        """
+
+    conn=sqlite3.connect("CollegeFootball.db")
+    away_info=pd.read_sql_query(cmd,conn)
+    conn.close()
+    
+    away_info=away_info.rename(columns={'latitude':'away_latitude','longitude':'away_longitude'})
+    
+    game_info=home_info.merge(away_info,left_index=True,right_index=True)
+    
+    team_loc=game_info[(game_info['Home Team']==team)][['home_latitude','home_longitude']]
+    if (team_loc.empty):
+        team_loc=game_info[(game_info['Away Team']== team)][['away_latitude','away_longitude']]
+        
+    fig=go.Figure()
+
+    conn = sqlite3.connect("CollegeFootball.db")
+    team_locations = pd.read_sql_query("SELECT * FROM coordinates",conn)
+    conn.close()
+
+    conn = sqlite3.connect("CollegeFootball.db")
+    distances = pd.read_sql_query("SELECT * FROM distances",conn)
+    conn.close()
+
+    centers=[]
+
+    home_hover_texts = []
+    away_hover_texts = [] 
+    for index, row in game_info[game_info['Home Team'] != team].iterrows():
+        hover_text = f"Week: {row['Week']}<br>{row['Away Team']}: {row['Away Points']} AT {row['Home Team']}: {row['Home Points']}"
+        home_hover_texts.append(hover_text)
+        fig.add_trace(
+            go.Scattergeo(
+                locationmode = 'USA-states',
+                lon = [row['home_longitude'], row['away_longitude']],
+                lat = [row['home_latitude'], row['away_latitude']],
+                mode = 'lines',
+                line = dict(width = 1,color = 'red'),
+                opacity=0.5,
+                showlegend=False,
+                hoverinfo='skip'
+            
+                )   
+            )
+        index1=team_locations[team_locations['team']==row['Home Team']].index
+        index2=team_locations[team_locations['team']==row['Away Team']].index
+        distance=(round(distances.iloc[index1,index2],2))
+    
+        fig.add_trace(go.Scattergeo(
+            locationmode='USA-states',
+            lon=[row['home_longitude']],
+            lat=[row['home_latitude']+0.5],
+            mode='text',
+            text=distance,
+            showlegend=False,
+            hoverinfo='text',
+            textfont=dict(size=10, color='black')
+            )
+    
+            )
+    
+    for index, row in game_info[game_info['Away Team'] != team].iterrows():
+        hover_text = f"Week: {row['Week']}<br>{row['Away Team']}: {row['Away Points']} AT {row['Home Team']}: {row['Home Points']}"
+        away_hover_texts.append(hover_text)
+        fig.add_trace(
+            go.Scattergeo(
+                locationmode = 'USA-states',
+                lon = [row['home_longitude'], row['away_longitude']],
+                lat = [row['home_latitude'], row['away_latitude']],
+                mode = 'lines',
+                line = dict(width = 1,color = 'blue'),
+                opacity=0.5,
+                hoverinfo='skip',
+                showlegend=False,
+            
+            )
+            )
+        index1=team_locations[team_locations['team']==row['Home Team']].index
+        index2=team_locations[team_locations['team']==row['Away Team']].index
+        distance=round(distances.iloc[index1,index2],2)
+    
+        fig.add_trace(go.Scattergeo(
+            locationmode='USA-states',
+            lon=[row['away_longitude']],
+            lat=[row['away_latitude']+0.5],
+            mode='text',
+            text=distance,
+            showlegend=False,
+            hoverinfo='text',
+            textfont=dict(size=10, color='black')
+            )
+    
+            )
+    
+    
+    fig.add_trace(go.Scattergeo(
+        locationmode = 'USA-states',
+        lon = [team_loc.iloc[0]['home_longitude']],
+        lat = [team_loc.iloc[0]['home_latitude']],
+        hovertemplate=team,
+        mode='markers',
+        name=team,
+        marker=dict(
+            symbol='star',
+            color='gold',
+            size=20,
+            )
+        ))
+
+    fig.add_trace(go.Scattergeo(
+        locationmode = 'USA-states',
+        lon=game_info[game_info['Home Team'] != team]['home_longitude'],
+        lat=game_info[game_info['Home Team'] != team]['home_latitude'],
+        hovertemplate="%{text}",
+        text=home_hover_texts,
+        mode='markers',
+        name='Away Game',
+        marker=dict(
+            color='red',
+            size=8
+            )   
+        ))
+
+    fig.add_trace(go.Scattergeo(
+        locationmode = 'USA-states',
+        lon=game_info[game_info['Away Team'] != team]['away_longitude'],
+        lat=game_info[game_info['Away Team'] != team]['away_latitude'],
+        hovertemplate="%{text}",
+        text=away_hover_texts,
+        mode='markers',
+        name='Home Game',
+        marker=dict(
+            color='blue',
+            size=8
+            )
+        ))
+
+    lats = pd.concat([game_info['home_latitude'], game_info['away_latitude']])
+    lons = pd.concat([game_info['home_longitude'], game_info['away_longitude']])
+
+
+    fig.update_geos(
+        lonaxis_range=[lons.min()-3, lons.max()+3],  
+        lataxis_range=[lats.min()-3, lats.max()+3],
+
+    )
+
+
+    fig.update_layout(
+        title_text=f'{team} Results for Simulated Season with Driving Distances between Teams (hr)'
+
+    )
+
+    fig.show()
+    
