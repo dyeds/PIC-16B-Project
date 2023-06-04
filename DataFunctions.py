@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import networkx as nx
-# import tensorflow as tf
+import tensorflow as tf
 import cfbd
 import sqlite3
 from plotly import express as px
@@ -199,14 +199,6 @@ def Simulate(g,i,c,y,st_dev):
         matchings += matching_group
         gcount += 1
         gnum += 1
-    
-    # gnum = 0
-    # for gnum in range(i+1):
-    #     g_group = g.subgraph(groups[gnum])
-    #     matching_group = nx.algorithms.matching.min_weight_matching(g_group)
-    #     s = set(groups[gnum]) - set(np.array(list(matching_group)).flatten())
-    #     # solve issue with odd groups, solution with sets does not work.
-    #     matchings += matching_group
         
     conn = sqlite3.connect("CollegeFootball.db")
     print(matchings)
