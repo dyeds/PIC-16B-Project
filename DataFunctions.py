@@ -460,6 +460,6 @@ def plot_teams_games(team):
         title_text=f'{team} Results for Simulated Season with Driving Distances between Teams (hr)'
 
     )
-
-    fig.show()
+    
+    return fig
     
