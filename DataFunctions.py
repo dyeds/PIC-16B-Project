@@ -505,6 +505,11 @@ def team_results(team):
     
     team_results=simulation[(simulation['Home Team']==team) | (simulation['Away Team']==team)]
     team_results=team_results.reset_index(drop=True)
+    
+    for i in range(0,len(team_results)):
+        s=show_standings(week=i+1)
+        team_results.loc[i,'Home Team']=team_results.loc[i,'Home Team']+' ('+str(s.loc[s['Team']==team_results.loc[i,'Home Team'],'Wins'].item())+'-'+str(s.loc[s['Team']==team_results.loc[i,'Home Team'],'Losses'].item())+')'
+        team_results.loc[i,'Away Team']=team_results.loc[i,'Away Team']+' ('+str(s.loc[s['Team']==team_results.loc[i,'Away Team'],'Wins'].item())+'-'+str(s.loc[s['Team']==team_results.loc[i,'Away Team'],'Losses'].item())+')'
         
 
     return team_results
