@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import networkx as nx
-import tensorflow as tf
+# import tensorflow as tf
 import cfbd
 import sqlite3
 from plotly import express as px
@@ -355,7 +355,7 @@ def plot_teams_games(team):
             mode='text',
             text=distance,
             showlegend=False,
-            hoverinfo='text',
+            hoverinfo='skip',
             textfont=dict(size=10, color='black')
             )
     
@@ -388,7 +388,7 @@ def plot_teams_games(team):
             mode='text',
             text=distance,
             showlegend=False,
-            hoverinfo='text',
+            hoverinfo='skip',
             textfont=dict(size=10, color='black')
             )
     
@@ -455,3 +455,56 @@ def plot_teams_games(team):
     
     return fig
     
+
+def show_standings(week):
+    conn = sqlite3.connect("CollegeFootball.db")
+    simulation = pd.read_sql_query("SELECT * FROM simul_games",conn)
+
+    conn.close()
+
+    conn = sqlite3.connect("CollegeFootball.db")
+    team_locations = pd.read_sql_query("SELECT * FROM coordinates",conn)
+
+    conn.close()
+    
+    standings=np.zeros((len(team_locations),3),dtype=int)
+
+    for i in range(len(simulation[simulation['Week']<=week])):
+        if (simulation.loc[i]['Home Points']>simulation.loc[i]['Away Points']):
+            standings[team_locations[team_locations['team']==simulation.loc[i]['Home Team']].index[0]][1]+=1
+            standings[team_locations[team_locations['team']==simulation.loc[i]['Away Team']].index[0]][2]+=1
+    
+        elif (simulation.loc[i]['Home Points']<simulation.loc[i]['Away Points']):
+            standings[team_locations[team_locations['team']==simulation.loc[i]['Away Team']].index[0]][1]+=1
+            standings[team_locations[team_locations['team']==simulation.loc[i]['Home Team']].index[0]][2]+=1
+    
+        else:
+            raise ValueError('Home Points = Away Points')
+    
+
+    standings=pd.DataFrame(standings)
+    standings=standings.rename(columns={0:'Team',1:'Wins',2:'Losses'})
+    standings['Team']=team_locations['team']
+    standings=standings.sort_values(by=['Wins'],ascending=False)
+    standings=standings.reset_index(drop=True)
+    
+    return standings
+
+def team_results(team):
+    cmd=\
+    """
+    SELECT S.'Week', S.'Home Team', S.'Home Points', S.'Away Team', S.'Away Points'
+    FROM simul_games S
+    """
+    conn = sqlite3.connect("CollegeFootball.db")
+
+    simulation = pd.read_sql_query(cmd,conn)
+
+    conn.close()
+    
+    
+    team_results=simulation[(simulation['Home Team']==team) | (simulation['Away Team']==team)]
+    team_results=team_results.reset_index(drop=True)
+        
+
+    return team_results
