@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import networkx as nx
-# import tensorflow as tf
+import tensorflow as tf
 import cfbd
 import sqlite3
 from plotly import express as px
@@ -9,6 +9,15 @@ import plotly.graph_objects as go
 
 
 def get_fbs_games(api_instance,year):
+    """_summary_
+
+    Args:
+        api_instance (_type_): _description_
+        year (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     gamelist = api_instance.get_games(year=year,division='fbs')
     
     gamelist = [game for game in gamelist if (game.home_division==game.away_division=="fbs" 
@@ -16,6 +25,14 @@ def get_fbs_games(api_instance,year):
     return gamelist
 
 def df_from_games(gamelist):
+    """_summary_
+
+    Args:
+        gamelist (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     gamelist = [game.to_dict() for game in gamelist]
     gamemetrics = ['away_conference','away_id','away_points','away_team',
                    'home_conference','home_id','home_points','home_team',
@@ -28,6 +45,16 @@ def df_from_games(gamelist):
     return df
 
 def get_fbs_betting(api_instance, year, conferences):
+    """_summary_
+
+    Args:
+        api_instance (_type_): _description_
+        year (_type_): _description_
+        conferences (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     betting_info=api_instance.get_lines(year=year)
     
     betting_info=[game for game in betting_info if (game.away_conference in conferences
@@ -35,6 +62,14 @@ def get_fbs_betting(api_instance, year, conferences):
     return betting_info
 
 def df_betting_lines(betting_info):
+    """_summary_
+
+    Args:
+        betting_info (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     betting_lines=[game.to_dict() for game in betting_info]
     
     for game in betting_lines:
@@ -69,6 +104,15 @@ def df_betting_lines(betting_info):
 #     return teamstats
 
 def word_adder(word,dict):
+    """_summary_
+
+    Args:
+        word (_type_): _description_
+        dict (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     word=word+"_"
     new_dict={}
     for key,value in dict.items():
@@ -77,6 +121,14 @@ def word_adder(word,dict):
     return new_dict
 
 def word_adder2(dict):
+    """_summary_
+
+    Args:
+        dict (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     updaterkeys = []
     for key,value in dict.items():
         if type(value)==type(dict):
@@ -88,6 +140,14 @@ def word_adder2(dict):
     return dict
 
 def df_team_advstats(teamstats):
+    """_summary_
+
+    Args:
+        teamstats (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     teamstats = [{**{'team':t.team,'season':t.season,'conference':t.conference},
                 **word_adder(word="Offensive",dict=t.offense.to_dict()),
                 **word_adder(word="Defensive",dict=t.defense.to_dict())} for t in teamstats]
@@ -99,10 +159,28 @@ def df_team_advstats(teamstats):
     return df
 
 def df_stats_needed(df,col):
+    """_summary_
+
+    Args:
+        df (_type_): _description_
+        col (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     df = df[col]
     return df
 
 def get_team_locations(api_instance,conferences):
+    """_summary_
+
+    Args:
+        api_instance (_type_): _description_
+        conferences (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     team_info=api_instance.get_teams()
     team_info[0]
     team_info=[[team.school,team.id,team.location.latitude,
@@ -114,7 +192,17 @@ def get_team_locations(api_instance,conferences):
 
 
 def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
-    
+    """_summary_
+
+    Args:
+        pred_spread (_type_): _description_
+        pred_total (_type_): _description_
+        std_spread (_type_): _description_
+        std_total (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     adjusted_spread=np.random.normal(pred_spread,std_spread)
     adjusted_total=np.random.normal(pred_total,std_total)
     adjusted_home_points=(adjusted_spread+adjusted_total)/2
@@ -261,6 +349,17 @@ def Simulate(g,i,c,y,st_dev):
 
 
 def get_team_stats_from_sql(conn,name,year):
+    """_summary_
+
+    Args:
+        conn (_type_): _description_
+        name (_type_): _description_
+        year (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    
     cmd=\
     f"""
     SELECT *
@@ -271,6 +370,17 @@ def get_team_stats_from_sql(conn,name,year):
     return df
 
 def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
+    """_summary_
+
+    Args:
+        conn (_type_): _description_
+        hometeam (_type_): _description_
+        awayteam (_type_): _description_
+        homepts (_type_): _description_
+        awaypts (_type_): _description_
+        round (_type_): _description_
+        team_id (_type_): _description_
+    """
     df = pd.DataFrame({"Week":round,"Home Team":hometeam,"Home Points":homepts,
                        "Away Team": awayteam, "Away Points":awaypts,
                        "latitude":team_id[team_id["team"]==hometeam]["latitude"],
@@ -457,6 +567,17 @@ def plot_teams_games(team):
     
 
 def show_standings(week):
+    """_summary_
+
+    Args:
+        week (_type_): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
     conn = sqlite3.connect("CollegeFootball.db")
     simulation = pd.read_sql_query("SELECT * FROM simul_games",conn)
 
@@ -491,6 +612,15 @@ def show_standings(week):
     return standings
 
 def team_results(team):
+    """_summary_
+
+    Args:
+        team (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    
     cmd=\
     """
     SELECT S.'Week', S.'Home Team', S.'Home Points', S.'Away Team', S.'Away Points'
