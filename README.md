@@ -90,7 +90,50 @@ model = tf.keras.models.Sequential([
 
 ______________________________________________________________________________________
 
-4. 
+4. To make the pairings we first create a weighted graph where every team has a node and there exists an edge between every two distinct teams with weight equal to the driving distance between those teams. Run this code block to make this graph.
 
+______________________________________________________________________________________
+
+conn = sqlite3.connect("CollegeFootball.db")
+distances = pd.read_sql_query("SELECT * FROM distances",conn)
+conn.close()
+
+m_dist = np.round(np.array(distances),decimals=3)
+L = []
+for k in range(126):
+    for j in range(126):
+        if k>j: L.append((k,j,m_dist[k,j]))
+        
+CollegeGraph = nx.Graph()
+CollegeGraph.add_weighted_edges_from(L)
+curr_data = np.zeros(shape=(126,3),dtype=int)
+curr_data[:,0] = np.arange(126)
+
+______________________________________________________________________________________
+
+Now to simulate the season, we use the 'Simulate' function from our DataFunctions file using the following code. Notice that we can change the simulation year from 2022 to any other year between 2015-2022 by editing this parameter. We can also change the number of games each team plays by changing the 'i in range(12)' to 'i in range(weeks)' where 'weeks' is the number of weeks you want. The results of all simulated games for the entire season are then stored in the 'simul_games' table of our SQL database.
+
+______________________________________________________________________________________
+
+for i in range(12):
+    DataFunctions.Simulate(g=CollegeGraph,
+                           i=i,c=curr_data,
+                           y=2022,st_dev=bestdiffstd)
+
+______________________________________________________________________________________
+
+Note that the simulation we ran will already be stored in the 'simul_games' table in SQL. If you want to clear this simulation and replace it with your own instance, you can run the follwing code.
+
+______________________________________________________________________________________
+
+conn = sqlite3.connect("CollegeFootball.db")
+cursor = conn.cursor()
+cursor.execute("DROP TABLE simul_games")
+conn.commit()
+conn.close()
+
+______________________________________________________________________________________
+
+5. Finally we can visualize the results of our simulation using various functions saved in the DataFunctions file. To see the standings after any week in the season, call the 'show_standings' function as 'show_standings(week)' with input parameter week which you choose. To see the final schedule and results of any one specific team, call 'team_results(team)' with your specified team. To visualize a plot of the location and distance all the opponents of a specified team, call the 'team_results(team)' function with the team of your choosing. See the documentation for more info about these functions. Finally, you are welcome to create your own tables and visualizations by querying from the SQL tables, namely the 'simul_games' table. 
 
 
