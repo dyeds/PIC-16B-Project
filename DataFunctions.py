@@ -28,13 +28,13 @@ def get_fbs_games(api_instance,year):
     return gamelist
 
 def df_from_games(gamelist):
-    """Transforms a list of games into a pandas dataframe
+    """Transforms a list of games into a pandas dataframe.
 
     Args:
         gamelist (list): List of games.
 
     Returns:
-        DataFrame: Includes all the games in a dataframe format
+        DataFrame: Includes all the games in a dataframe format.
     """
     gamelist = [game.to_dict() for game in gamelist]
     gamemetrics = ['away_conference','away_id','away_points','away_team',
@@ -66,13 +66,14 @@ def get_fbs_betting(api_instance, year, conferences):
     return betting_info
 
 def df_betting_lines(betting_info):
-    """Transforms a list of betting-lines into a pandas dataframe
+    """Transforms a list of betting-lines into a pandas dataframe. If there are multiple lines 
+    for the spread and over-under, we take the average value for the spread and betting lines.
 
     Args:
-        gamelist (list): List of betting-lines.
+        betting_info (list): List of betting-lines.
 
     Returns:
-        DataFrame: Includes all the betting-lines in a dataframe format
+        DataFrame: Includes all the betting-lines in a dataframe format.
     """
     # for each betting-line object, create a dictionary with all values
     betting_lines=[game.to_dict() for game in betting_info]
@@ -135,7 +136,7 @@ def word_adder2(dict):
         dict (dict): Dictionary to update.
     
     Returns:
-        dict: Dictionary with updated keys
+        dict: Dictionary with updated keys.
     """
     updaterkeys = []
     for key,value in dict.items():
@@ -151,7 +152,7 @@ def df_team_advstats(teamstats):
     """Transforms a list of team statistics into a pandas dataframe.
 
     Args:
-        teamstats (list): List of Team Statistic Objects.
+        teamstats (list): List of Team Statistics Objects.
 
     Returns:
        DataFrame: Has all team statistics for given year.
@@ -166,7 +167,7 @@ def df_team_advstats(teamstats):
     return df
 
 def df_stats_needed(df,col):
-    """Returns a dataframe with selected columns metrics. Used for Team Stats.
+    """Returns a dataframe with selected columns metrics for model. Used for Team Stats.
 
     Args:
         df (DataFrame): DataFrame with Team Statistics needed.
@@ -179,11 +180,11 @@ def df_stats_needed(df,col):
     return df
 
 def get_team_locations(api_instance,conferences):
-    """Obtains Team Locations using the API and stores 
+    """Obtains each teams' locations using the API and creates dataframe. 
 
     Args:
-        api_instance: Instance of the TeamsApi class
-        conferences (list): List of FBS conferences
+        api_instance: Instance of the TeamsApi class.
+        conferences (list): List of FBS conferences.
 
     Returns:
         DataFrame: Displays latitude and longitude for all teams.
@@ -200,8 +201,8 @@ def get_team_locations(api_instance,conferences):
 
 def prediction_to_score(pred_spread,pred_total,std_spread,std_total):
     """Transforms a predicted spread and over/under to an actual score,
-    using a random normal distribution that has as mean the model predictions,
-    and as standard deviation the standard error of the model.
+    using a random normal distribution that uses the model predictions as the mean,
+    and the standard error of the model as the standard deviation.
 
     Args:
         pred_spread (float): Model predicted spread.
@@ -244,7 +245,7 @@ def Simulate(g,i,c,y,st_dev):
         i (int): Round number.
         c (np.array): Current data with #-wins and #-home_games.
         y (int): Year of the simulation.
-        st_dev ([float,float]): Standard Deviation of both spread and totalpts
+        st_dev ([float,float]): Standard Deviation of both spread and totalpts.
     """
     #loading machine learning model:
     prediction_model  = tf.keras.models.load_model("CFBprediction.h5")
@@ -369,15 +370,15 @@ def Simulate(g,i,c,y,st_dev):
 
 
 def get_team_stats_from_sql(conn,name,year):
-    """_summary_
+    """Gets team statistics from stats table for a single team in a single season.
 
     Args:
-        conn (_type_): _description_
-        name (_type_): _description_
-        year (_type_): _description_
+        conn: SQL connection to CollegeFootball.db database.
+        name (str): Team name that we want stats for.
+        year (int): The season that we want the stats from.
 
     Returns:
-        _type_: _description_
+        Dataframe: Includes rows from stats table for the selected team and the selected year.
     """
     
     cmd=\
@@ -393,13 +394,13 @@ def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
     """Adds simulated game result to the simul_games table on SQL database.
 
     Args:
-        conn: SQL connection to CollegeFootball.db database
-        hometeam (str): Home team name
-        awayteam (str): Away team name
-        homepts (int): Points by home team
-        awaypts (int): Points by away team
-        round (int): Round number
-        team_id (int): Team ID number
+        conn: SQL connection to CollegeFootball.db database.
+        hometeam (str): Home team name.
+        awayteam (str): Away team name.
+        homepts (int): Points by home team.
+        awaypts (int): Points by away team.
+        round (int): Round number.
+        team_id (int): Team ID number.
     """
     #creates 1-row DataFrame with result and location data.
     df = pd.DataFrame({"Week":round,"Home Team":hometeam,"Home Points":homepts,
@@ -413,6 +414,18 @@ def register_simul_game(conn,hometeam,awayteam,homepts,awaypts,round,team_id):
 
 
 def plot_teams_games(team):
+    """ Plots the locations of all opponents of a selected team over the season, labeled
+    with the driving distance between the teams in hours. The gold star corresponds to the 
+    location of the selected team, and each game is marked as a 'home game' or 'away game'
+    for the selected team. Howevering over each opponent shows the week that the teams 
+    played and the final score of the game.
+    
+    Args:
+        team (str): The selected team for which we want to plots its games.
+        
+    Returns:
+        Plotly Graph Object: geographic plot in plotly with the various features described above.
+    """
     cmd=\
         f"""
         SELECT S.'Week',S.'Home Team', S.'Home Points', C.latitude, C.longitude
@@ -590,16 +603,18 @@ def plot_teams_games(team):
     
 
 def show_standings(week):
-    """_summary_
+    """Displays the standings after the given week in the season, where the teams are sorted
+    by win-loss record from best to worst.
 
     Args:
-        week (_type_): _description_
+        week (int): Week to display standings after, input should be an int between 1-12.
 
     Raises:
-        ValueError: _description_
+        ValueError: If simulated game results in a tie which should never happen given
+        how the simulation has been constructed.
 
     Returns:
-        _type_: _description_
+        Dataframe: Standings among all teams.
     """
     conn = sqlite3.connect("CollegeFootball.db")
     simulation = pd.read_sql_query("SELECT * FROM simul_games",conn)
@@ -635,13 +650,14 @@ def show_standings(week):
     return standings
 
 def team_results(team):
-    """_summary_
+    """Displays season results of a specified team, which includes the opponent and result of each 
+    week's game, as well as the win-loss record of each team after each game. 
 
     Args:
-        team (_type_): _description_
+        team (str): The team to show results for
 
     Returns:
-        _type_: _description_
+        Dataframe: Shows team results.
     """
     
     cmd=\
