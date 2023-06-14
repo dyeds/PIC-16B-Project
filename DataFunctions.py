@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import networkx as nx
-# import tensorflow as tf
+import tensorflow as tf
 import cfbd
 import sqlite3
 from plotly import express as px
